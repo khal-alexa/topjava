@@ -12,43 +12,28 @@
 
 <table border="2">
     <tr>
+        <th>Id</th>
         <th>Date/Time</th>
         <th>Description</th>
         <th>Calories</th>
+        <th colspan=2>Action</th>
     </tr>
     <c:forEach var="meal" items="${mealsTo}">
-        <c:if test="${meal.isExcess() == true}">
-            <tr style="color: red">
-                <td>
-                    <fmt:parseDate value="${ meal.getDateTime() }" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDateTime"
-                                   type="both"/>
-                    <fmt:formatDate pattern="dd.MM.yyyy HH:mm" value="${ parsedDateTime }"/>
-                </td>
-                <td>
-                    <c:out value="${meal.getDescription()}"/>
-                </td>
-                <td>
-                    <c:out value="${meal.getCalories()}"/>
-                </td>
-            </tr>
-        </c:if>
-
-        <c:if test="${meal.isExcess() == false}">
-            <tr style="color: green">
-                <td>
-                    <fmt:parseDate value="${ meal.getDateTime() }" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDateTime"
-                                   type="both"/>
-                    <fmt:formatDate pattern="dd.MM.yyyy HH:mm" value="${ parsedDateTime }"/>
-                </td>
-                <td>
-                    <c:out value="${meal.getDescription()}"/>
-                </td>
-                <td>
-                    <c:out value="${meal.getCalories()}"/>
-                </td>
-            </tr>
-        </c:if>
+        <tr style="color:${meal.excess ? 'red' : 'green'}">
+            <td><c:out value="${meal.getId()}"/></td>
+            <td>
+                <fmt:parseDate value="${ meal.getDateTime() }" pattern="yyyy-MM-dd'T'HH:mm" var="parsedDateTime"
+                               type="both"/>
+                <fmt:formatDate pattern="dd.MM.yyyy HH:mm" value="${ parsedDateTime }"/>
+            </td>
+            <td><c:out value="${meal.getDescription()}"/></td>
+            <td><c:out value="${meal.getCalories()}"/></td>
+            <td><a href="RepositoryServlet?action=edit&mealId=<c:out value="${meal.id}"/>">Update</a></td>
+            <td><a href="RepositoryServlet?action=delete&mealId=<c:out value="${meal.id}"/>">Delete</a></td>
+        </tr>
+        </tr>
     </c:forEach>
 </table>
+<p><a href="add-meal?action=insert">Add Meal</a></p>
 </body>
 </html>
