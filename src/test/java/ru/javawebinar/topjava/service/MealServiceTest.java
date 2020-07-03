@@ -12,10 +12,22 @@ import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.List;
 
 import static org.junit.Assert.assertThrows;
-import static ru.javawebinar.topjava.MealTestData.*;
+import static ru.javawebinar.topjava.MealTestData.ADMIN_MEAL1;
+import static ru.javawebinar.topjava.MealTestData.ADMIN_MEAL_ID;
+import static ru.javawebinar.topjava.MealTestData.MEAL1;
+import static ru.javawebinar.topjava.MealTestData.MEAL1_ID;
+import static ru.javawebinar.topjava.MealTestData.MEAL2;
+import static ru.javawebinar.topjava.MealTestData.MEAL3;
+import static ru.javawebinar.topjava.MealTestData.MEALS;
+import static ru.javawebinar.topjava.MealTestData.MEAL_MATCHER;
+import static ru.javawebinar.topjava.MealTestData.NOT_FOUND;
+import static ru.javawebinar.topjava.MealTestData.getNew;
+import static ru.javawebinar.topjava.MealTestData.getUpdated;
 import static ru.javawebinar.topjava.UserTestData.ADMIN_ID;
+import static ru.javawebinar.topjava.UserTestData.USER;
 import static ru.javawebinar.topjava.UserTestData.USER_ID;
 
 @ContextConfiguration({
@@ -51,6 +63,7 @@ public class MealServiceTest {
         int newId = created.id();
         Meal newMeal = getNew();
         newMeal.setId(newId);
+        newMeal.setUser(USER);
         MEAL_MATCHER.assertMatch(created, newMeal);
         MEAL_MATCHER.assertMatch(service.get(newId, USER_ID), newMeal);
     }
@@ -86,6 +99,7 @@ public class MealServiceTest {
     @Test
     public void getAll() throws Exception {
         MEAL_MATCHER.assertMatch(service.getAll(USER_ID), MEALS);
+//        assertEquals(service.getAll(USER_ID).toArray(), MEALS.toArray());
     }
 
     @Test
