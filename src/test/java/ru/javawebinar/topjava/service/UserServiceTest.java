@@ -1,8 +1,13 @@
 package ru.javawebinar.topjava.service;
 
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Stopwatch;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.dao.DataAccessException;
@@ -16,10 +21,16 @@ import ru.javawebinar.topjava.model.Role;
 import ru.javawebinar.topjava.model.User;
 import ru.javawebinar.topjava.util.exception.NotFoundException;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertThrows;
-import static ru.javawebinar.topjava.UserTestData.*;
+import static org.slf4j.LoggerFactory.getLogger;
+import static ru.javawebinar.topjava.UserTestData.ADMIN;
+import static ru.javawebinar.topjava.UserTestData.USER;
+import static ru.javawebinar.topjava.UserTestData.USER_ID;
+import static ru.javawebinar.topjava.UserTestData.assertMatch;
 
 @ContextConfiguration({
         "classpath:spring/spring-app.xml",
@@ -28,13 +39,37 @@ import static ru.javawebinar.topjava.UserTestData.*;
 @RunWith(SpringRunner.class)
 @Sql(scripts = "classpath:db/populateDB.sql", config = @SqlConfig(encoding = "UTF-8"))
 @ActiveProfiles(resolver = ActiveDbProfileResolver.class)
-public class UserServiceTest {
+public abstract class UserServiceTest {
+
+    private static final Logger log = getLogger("result");
 
     @Autowired
     private UserService service;
 
     @Autowired
     private CacheManager cacheManager;
+
+    private static StringBuilder results = new StringBuilder();
+
+    @Rule
+    // http://stackoverflow.com/questions/14892125/what-is-the-best-practice-to-determine-the-execution-time-of-the-bussiness-relev
+    public Stopwatch stopwatch = new Stopwatch() {
+        @Override
+        protected void finished(long nanos, Description description) {
+            String result = String.format("\n%-25s %7d", description.getMethodName(), TimeUnit.NANOSECONDS.toMillis(nanos));
+            results.append(result);
+            log.info(result + " ms\n");
+        }
+    };
+
+    @AfterClass
+    public static void printResult() {
+        log.info("\n---------------------------------" +
+                "\nTest                 Duration, ms" +
+                "\n---------------------------------" +
+                results +
+                "\n---------------------------------");
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -43,58 +78,57 @@ public class UserServiceTest {
 
     @Test
     public void create() throws Exception {
-        User created = service.create(getNew());
-        int newId = created.id();
-        User newUser = getNew();
-        newUser.setId(newId);
-        USER_MATCHER.assertMatch(created, newUser);
-        USER_MATCHER.assertMatch(service.get(newId), newUser);
+        User newUser = new User(null, "John", "john@gmail.com", "newPass", 1200, false, new Date(), Collections.singleton(Role.USER));
+        User created = service.create(newUser);
+        newUser.setId(created.getId());
+        assertMatch(service.getAll(), ADMIN, newUser, USER);
     }
 
-    @Test
+    @Test(expected = DataAccessException.class)
     public void duplicateMailCreate() throws Exception {
-        assertThrows(DataAccessException.class, () ->
-                service.create(new User(null, "Duplicate", "user@yandex.ru", "newPass", Role.USER)));
+        service.create(new User(null, "Ivanna", "user@yandex.ru", "newpassword", Role.USER));
     }
 
     @Test
     public void delete() throws Exception {
         service.delete(USER_ID);
-        assertThrows(NotFoundException.class, () -> service.get(USER_ID));
+        assertMatch(service.getAll(), ADMIN);
     }
 
-    @Test
+    @Test(expected = NotFoundException.class)
     public void deletedNotFound() throws Exception {
-        assertThrows(NotFoundException.class, () -> service.delete(NOT_FOUND));
+        service.delete(1);
     }
 
     @Test
     public void get() throws Exception {
         User user = service.get(USER_ID);
-        USER_MATCHER.assertMatch(user, USER);
+        assertMatch(user, USER);
     }
 
-    @Test
+    @Test(expected = NotFoundException.class)
     public void getNotFound() throws Exception {
-        assertThrows(NotFoundException.class, () -> service.get(NOT_FOUND));
+        service.get(1);
     }
 
     @Test
     public void getByEmail() throws Exception {
-        User user = service.getByEmail("admin@gmail.com");
-        USER_MATCHER.assertMatch(user, ADMIN);
+        User user = service.getByEmail("user@yandex.ru");
+        assertMatch(user, USER);
     }
 
     @Test
     public void update() throws Exception {
-        User updated = getUpdated();
+        User updated = new User(USER);
+        updated.setName("UpdatedName");
+        updated.setCaloriesPerDay(330);
         service.update(updated);
-        USER_MATCHER.assertMatch(service.get(USER_ID), getUpdated());
+        assertMatch(service.get(USER_ID), updated);
     }
 
     @Test
     public void getAll() throws Exception {
         List<User> all = service.getAll();
-        USER_MATCHER.assertMatch(all, ADMIN, USER);
+        assertMatch(all, ADMIN, USER);
     }
 }
